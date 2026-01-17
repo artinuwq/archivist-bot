@@ -103,7 +103,7 @@ async def ui_handler(message: Message):
             [
                 InlineKeyboardButton(
                     text="Открыть MiniApp",
-                    web_app=WebAppInfo(url="https://artinuwq.github.io/telegram-miniapp/")
+                    web_app=WebAppInfo(url="https://artinuwq.github.io/telegram-miniapp/?v=2")
                 )
             ]
         ]
