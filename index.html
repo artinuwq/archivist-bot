@@ -15,6 +15,7 @@ button, input { margin:5px; padding:10px; font-size:16px;}
 <h1>Telegram Cloud Storage</h1>
 <input type="file" id="fileInput"/>
 <button id="openChatBtn">Открыть чат с ботом</button>
+<button id="uploadBtn">Отправить файл через бота</button>
 
 <h2>Список файлов</h2>
 <div id="fileList">Загрузка...</div>
@@ -24,27 +25,25 @@ const tg = window.Telegram.WebApp;
 
 // Кнопка открытия чата с ботом
 document.getElementById('openChatBtn').addEventListener('click', ()=>{
-    // Замените @YourBotUsername на юзернейм вашего бота
-    window.open("https://t.me/@YourBotUsername", "_blank");
+    window.open("https://t.me/arvica_bot", "_blank");
 });
 
-// Передача данных файла боту через WebApp.sendData
-document.getElementById('fileInput').addEventListener('change', ()=>{
+// Загрузка файла через WebApp.sendData
+document.getElementById('uploadBtn').addEventListener('click', ()=>{
     const fileInput = document.getElementById('fileInput');
-    if(!fileInput.files.length) return;
+    if(!fileInput.files.length) return alert("Выберите файл!");
 
     const file = fileInput.files[0];
     const reader = new FileReader();
     reader.onload = function(e){
         const base64 = e.target.result.split(",")[1];
-        // Отправляем данные боту, обработка на Python стороне
         tg.sendData(JSON.stringify({file_name:file.name, data: base64}));
-        alert("Данные отправлены боту. Откройте чат с ботом, чтобы отправить файл в канал.");
+        alert("Данные отправлены боту. Откройте чат с ботом, чтобы загрузить файл в канал.");
     };
     reader.readAsDataURL(file);
 });
 
-// TODO: Подгрузка списка файлов (через API бота или WebApp.sendData)
+// TODO: Подгрузка списка файлов
 async function loadFiles(){
     document.getElementById('fileList').innerHTML = "Список файлов будет здесь...";
 }

@@ -1,20 +1,21 @@
 import os
 import asyncio
 import sqlite3
+import base64
+import json
+
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile, WebAppInfo
 
-from config import BOT_TOKEN, CHANNEL_ID, ALLOWED_USER_IDS, OBSIDIAN_PATH, DOWNLOAD_DIR, KEEP_TIKTOK_FILES, DB_FILE
+from config import BOT_TOKEN, CHANNEL_ID, DB_FILE
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # ----------------- База данных -----------------
 def init_db():
-    # Создаём папку под базу, если её нет
     os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
-
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("""
@@ -27,7 +28,6 @@ def init_db():
     """)
     conn.commit()
     conn.close()
-
 
 def save_file(message_id: int, file_name: str, file_type: str, size: int):
     conn = sqlite3.connect(DB_FILE)
@@ -48,42 +48,21 @@ def list_files():
 # ----------------- Команды -----------------
 @dp.message(CommandStart())
 async def start_handler(message: Message):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[
+            InlineKeyboardButton(
+                text="Открыть MiniApp",
+                web_app=WebAppInfo(url="https://artinuwq.github.io/telegram-miniapp/")
+            )
+        ]]
+    )
     await message.answer(
         "Привет!\n"
-        "- Используй MiniApp для работы с файлами.\n"
-        "- Файлы будут храниться в канале как облако."
+        "Используй MiniApp для работы с файлами.\n"
+        "Файлы будут храниться в канале как облако.",
+        reply_markup=keyboard
     )
 
-# ----------------- Приём файлов через MiniApp -----------------
-@dp.message(F.content_type.in_({"document", "video", "photo"}))
-async def upload_handler(message: Message):
-    file = message.document or message.video or (message.photo[-1] if message.photo else None)
-    if not file:
-        await message.reply("Файл не найден!")
-        return
-
-    # Отправка файла в канал
-    if message.document:
-        sent = await bot.send_document(CHANNEL_ID, message.document.file_id, caption=message.document.file_name)
-        file_name = message.document.file_name
-        file_type = "document"
-        size = message.document.file_size
-    elif message.video:
-        sent = await bot.send_video(CHANNEL_ID, message.video.file_id, caption=message.video.file_name or "video.mp4")
-        file_name = message.video.file_name or "video.mp4"
-        file_type = "video"
-        size = message.video.file_size
-    elif message.photo:
-        sent = await bot.send_photo(CHANNEL_ID, message.photo[-1].file_id)
-        file_name = "photo.jpg"
-        file_type = "photo"
-        size = message.photo[-1].file_size
-
-    # Сохраняем в БД
-    save_file(sent.message_id, file_name, file_type, size)
-    await message.reply(f"Файл '{file_name}' успешно загружен!")
-
-# ----------------- Список файлов -----------------
 @dp.message(Command("files"))
 async def files_handler(message: Message):
     rows = list_files()
@@ -96,19 +75,32 @@ async def files_handler(message: Message):
         text += f"- {name} (id={mid})\n"
     await message.reply(text)
 
-@dp.message(Command("ui"))
-async def ui_handler(message: Message):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="Открыть MiniApp",
-                    web_app=WebAppInfo(url="https://artinuwq.github.io/telegram-miniapp/?v=2")
-                )
-            ]
-        ]
-    )
-    await message.answer("Открываю MiniApp:", reply_markup=keyboard)
+# ----------------- Приём файлов через MiniApp -----------------
+@dp.message(F.content_type == "web_app_data")
+async def webapp_file_handler(message: Message):
+    try:
+        data = json.loads(message.web_app_data.data)
+        file_name = data['file_name']
+        b64data = data['data']
+        file_bytes = base64.b64decode(b64data)
+
+        # Определяем тип файла
+        ext = file_name.split('.')[-1].lower()
+        if ext in ["jpg","jpeg","png","gif"]:
+            file_type = "photo"
+            sent = await bot.send_photo(CHANNEL_ID, FSInputFile(file_bytes))
+        elif ext in ["mp4","mov","mkv"]:
+            file_type = "video"
+            sent = await bot.send_video(CHANNEL_ID, FSInputFile(file_bytes), caption=file_name)
+        else:
+            file_type = "document"
+            sent = await bot.send_document(CHANNEL_ID, FSInputFile(file_bytes), caption=file_name)
+
+        save_file(sent.message_id, file_name, file_type, len(file_bytes))
+        await message.reply(f"Файл '{file_name}' успешно загружен в канал!")
+
+    except Exception as e:
+        await message.reply(f"Ошибка: {e}")
 
 # ----------------- Скачивание файлов -----------------
 @dp.message(F.text.regexp(r'^download (\d+)$'))
