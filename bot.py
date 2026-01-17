@@ -5,9 +5,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile, WebAppInfo
 
-from config import BOT_TOKEN, CHANNEL_ID, ALLOWED_USER_IDS, OBSIDIAN_PATH, DOWNLOAD_DIR, KEEP_TIKTOK_FILES
-
-DB_FILE = "files.db"
+from config import BOT_TOKEN, CHANNEL_ID, ALLOWED_USER_IDS, OBSIDIAN_PATH, DOWNLOAD_DIR, KEEP_TIKTOK_FILES, DB_FILE
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
