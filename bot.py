@@ -12,6 +12,9 @@ dp = Dispatcher()
 
 # ----------------- База данных -----------------
 def init_db():
+    # Создаём папку под базу, если её нет
+    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
+
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("""
@@ -24,6 +27,7 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+
 
 def save_file(message_id: int, file_name: str, file_type: str, size: int):
     conn = sqlite3.connect(DB_FILE)

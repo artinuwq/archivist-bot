@@ -14,7 +14,7 @@ button, input { margin:5px; padding:10px; font-size:16px;}
 
 <h1>Telegram Cloud Storage</h1>
 <input type="file" id="fileInput"/>
-<button id="uploadBtn">Загрузить файл</button>
+<button id="openChatBtn">Открыть чат с ботом</button>
 
 <h2>Список файлов</h2>
 <div id="fileList">Загрузка...</div>
@@ -22,29 +22,33 @@ button, input { margin:5px; padding:10px; font-size:16px;}
 <script>
 const tg = window.Telegram.WebApp;
 
-// Загружаем список файлов
-async function loadFiles() {
-    const resp = await fetch(`https://api.telegram.org/botВАШ_ТОКЕН_БОТА/getUpdates`);
-    // Для простоты примера мы используем команду /files через бота
-    fetch(`https://api.telegram.org/botВАШ_ТОКЕН_БОТА/sendMessage?chat_id=${tg.initDataUnsafe.user.id}&text=/files`)
-    .then(r => console.log("Запрошен список файлов"));
-}
-loadFiles();
+// Кнопка открытия чата с ботом
+document.getElementById('openChatBtn').addEventListener('click', ()=>{
+    // Замените @YourBotUsername на юзернейм вашего бота
+    window.open("https://t.me/@YourBotUsername", "_blank");
+});
 
-// Загрузка файла
-document.getElementById('uploadBtn').addEventListener('click', async ()=>{
+// Передача данных файла боту через WebApp.sendData
+document.getElementById('fileInput').addEventListener('change', ()=>{
     const fileInput = document.getElementById('fileInput');
-    if(!fileInput.files.length) return alert("Выберите файл!");
+    if(!fileInput.files.length) return;
 
     const file = fileInput.files[0];
     const reader = new FileReader();
     reader.onload = function(e){
         const base64 = e.target.result.split(",")[1];
+        // Отправляем данные боту, обработка на Python стороне
         tg.sendData(JSON.stringify({file_name:file.name, data: base64}));
+        alert("Данные отправлены боту. Откройте чат с ботом, чтобы отправить файл в канал.");
     };
     reader.readAsDataURL(file);
-    alert("Данные отправлены боту, он сохранит файл в канале!");
 });
+
+// TODO: Подгрузка списка файлов (через API бота или WebApp.sendData)
+async function loadFiles(){
+    document.getElementById('fileList').innerHTML = "Список файлов будет здесь...";
+}
+loadFiles();
 </script>
 
 </body>
