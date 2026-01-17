@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Telegram Cloud</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body { margin:0; font-family: system-ui; background:#f4f4f4; display:flex; flex-direction:column; align-items:center; padding:20px;}
+button, input { margin:5px; padding:10px; font-size:16px;}
+#fileList { margin-top:20px; width:100%; max-width:600px;}
+</style>
+</head>
+<body>
+
+<h1>Telegram Cloud Storage</h1>
+<input type="file" id="fileInput"/>
+<button id="uploadBtn">Загрузить файл</button>
+
+<h2>Список файлов</h2>
+<div id="fileList">Загрузка...</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+
+// Загружаем список файлов
+async function loadFiles() {
+    const resp = await fetch(`https://api.telegram.org/botВАШ_ТОКЕН_БОТА/getUpdates`);
+    // Для простоты примера мы используем команду /files через бота
+    fetch(`https://api.telegram.org/botВАШ_ТОКЕН_БОТА/sendMessage?chat_id=${tg.initDataUnsafe.user.id}&text=/files`)
+    .then(r => console.log("Запрошен список файлов"));
+}
+loadFiles();
+
+// Загрузка файла
+document.getElementById('uploadBtn').addEventListener('click', async ()=>{
+    const fileInput = document.getElementById('fileInput');
+    if(!fileInput.files.length) return alert("Выберите файл!");
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const base64 = e.target.result.split(",")[1];
+        tg.sendData(JSON.stringify({file_name:file.name, data: base64}));
+    };
+    reader.readAsDataURL(file);
+    alert("Данные отправлены боту, он сохранит файл в канале!");
+});
+</script>
+
+</body>
+</html>
